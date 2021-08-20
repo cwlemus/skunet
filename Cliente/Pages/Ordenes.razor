@@ -1,0 +1,121 @@
+﻿@page "/listaOrdenes"
+
+@using ClienteDTO.DTO
+@using Servicio
+@inject ISkuService SkuService
+@using Blazored.Typeahead
+@inject HttpClient http
+
+
+@code{
+    string[] cabecera = { "Codigo", "Articulo", "Cantidad", "Stock", "Opciones" };
+}
+<div class="alert @tipoMsg">
+    @msg
+</div>
+<form @onsubmit="AgregarArticulo">
+    <label>Articulo</label>
+    <BlazoredTypeahead SearchMethod="buscarArticulo" @bind-Value="skuDTOSelected" EnableDropDown="true" TItem="SkuDTO" TValue="SkuDTO">
+        <SelectedTemplate Context="cntx">
+            @cntx.SkuNumber - @cntx.Descripcion | stock: @cntx.Stock
+        </SelectedTemplate>
+        <ResultTemplate Context="cnt">
+            @cnt.SkuNumber - @cnt.Descripcion | stock: @cnt.Stock
+        </ResultTemplate>
+    </BlazoredTypeahead>
+
+    <label>Cantidad</label>
+    <input type="text" class="form-check form-control"
+           @bind-value="Cantidad" />
+
+    <div class="form-group">
+        <input type="submit" class="m-3 btn btn-primary" value="Agregar" />
+    </div>
+</form>
+
+<Lista cabeceras=cabecera List=lstOrdenes
+       eventBusqueda="BusquedaOrden"
+       ElimnarOpt="true"
+       eventEliminar="EliminarDatos" />
+
+
+@code {
+    private ExistenciaDTO[] lstOrdenes;
+    IEnumerable<ExistenciaDTO> lst;
+    int Cantidad;
+    SkuDTO skuDTOSelected;
+    private string tipoMsg = "", msg = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        await llenarLista();
+    }
+
+    private async Task llenarLista()
+    {
+        lst = await SkuService.GetAllExistencia("");
+        lstOrdenes = lst.Select(s => s).ToArray();
+    }
+
+    public async Task BusquedaOrden(string data)
+    {
+        await llenarLista();
+
+    }
+    private async Task<IEnumerable<SkuDTO>> buscarArticulo(string seachText)
+    {
+        return await SkuService.GetAllSkus(seachText);
+    }
+
+    public async Task AgregarArticulo()
+    {
+        OrdenesDTO orden = new OrdenesDTO
+        {
+            Cantidad = this.Cantidad,
+            SkuNumber = skuDTOSelected.SkuNumber
+        };
+
+        if (this.Cantidad <= 0 || this.Cantidad > skuDTOSelected.Stock)
+        {
+            this.Cantidad = 0;
+            tipoMsg = "alert alert-danger";
+            msg = "Accion no pudo procesarse, cantidad no congruente";
+        }
+        else
+        {
+            bool respuesta = await SkuService.PostOrden("api/addOrder", orden);
+            if (respuesta)
+            {
+                await llenarLista();
+                tipoMsg = "alert alert-primary";
+                msg = "Se agrego con exito";
+                await llenarLista();
+            }
+            else
+            {
+                tipoMsg = "alert alert-danger";
+                msg = "Accion no pudo procesarse, no se agregaron registros";
+            }
+        }
+
+    }
+
+    public async Task EliminarDatos(string data)
+    {
+        string respuesta= await SkuService.DelOrder(data);
+
+        if (respuesta == "1")
+        {
+            data = "";
+            await llenarLista();
+            tipoMsg = "alert alert-primary";
+            msg = "Se elimino con exito";
+        }
+        else
+        {
+            tipoMsg = "alert alert-danger";
+            msg = "Accion no pudo procesarse, no se eliminaron registros";
+        }
+    }
+
+}

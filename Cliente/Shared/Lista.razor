@@ -1,0 +1,79 @@
+﻿@if (List == null)
+{
+    <h1>Cargando ...</h1>
+}
+<div class="mb-4">
+    <label class="form-group">Buscar</label>
+    <input type="text" class="form-check form-control"
+           @bind-value="Filtro"
+           @bind-value:event="oninput"
+           @onkeyup="Busqueda" />
+
+</div>
+
+<table class="table">
+    <thead>
+        <tr>
+            @foreach (var item in cabeceras)
+            {
+                <td>@item</td>
+            }
+        </tr>
+    </thead>
+    <tbody>
+        @if (List != null)
+        {
+            @foreach (object obj in List)
+            {
+                <tr>
+                    @foreach (var prop in obj.GetType().GetProperties())
+                    {
+                        <td>@prop.GetValue(obj)</td>
+                    }
+                    <td>
+                        @if (ElimnarOpt)
+                        {
+                            <button class="btn btn-danger fa fa-trash"
+                                    data-toggle="modal" data-target="#dlgEliminar"
+                                    @onclick="@(()=>OptEliminar(@obj.GetType().GetProperties()[0].GetValue(@obj).ToString()))">
+                            </button>
+                        }
+
+                    </td>
+                </tr>
+            }
+        }
+    </tbody>
+</table>
+<MsgConfirmacion id="@valorEliminar"
+                 eventEliminar="EliminarDato" />
+
+@code {
+    [Parameter]
+    public object[] List { get; set; }
+    [Parameter]
+    public string[] cabeceras { get; set; }
+    [Parameter]
+    public EventCallback<String> eventBusqueda { get; set; }
+    public string Filtro { get; set; }
+    [Parameter]
+    public bool ElimnarOpt { get; set; }
+    [Parameter]
+    public EventCallback<string> eventEliminar { get; set; }
+    public string valorEliminar { get; set; }
+
+    public void Busqueda()
+    {
+        eventBusqueda.InvokeAsync(Filtro);
+    }
+    public void OptEliminar(String data)
+    {
+        valorEliminar = data;
+    }
+
+    
+    public void EliminarDato(string data)
+    {
+        eventEliminar.InvokeAsync(data);
+    }
+}

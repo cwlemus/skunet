@@ -1,0 +1,27 @@
+﻿@page "/listaArticulos" 
+@using ClienteDTO.DTO
+@using Servicio
+@inject ISkuService SkuService
+
+@code{
+    string[] cabecera = { "Codigo","Articulo","Cantidad", "Stock" };
+}
+<Lista cabeceras=cabecera List=lstArticulos eventBusqueda="Busqueda"/>
+
+
+@code {
+    private SkuDTO[] lstArticulos;
+    IEnumerable<SkuDTO> lst;
+    protected override async Task OnInitializedAsync()
+    {
+        lst = await SkuService.GetAllSkus("");
+        lstArticulos = lst.Select(s => s).ToArray();
+    }
+
+    public async Task Busqueda(string data)
+    {
+        lst = await SkuService.GetAllSkus(data);
+        lstArticulos = lst.Select(s => s).ToArray();
+
+    }
+}
